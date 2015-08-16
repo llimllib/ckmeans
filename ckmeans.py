@@ -129,7 +129,7 @@ if __name__ == "__main__":
     for test in tests:
         args, expected = test
         result = ckmeans(*args)
-        errormsg = "ckmeans({}) = {} != {}\n{} {}".format(
+        errormsg = "ckmeans({}) = {} != {}\n{} > {}".format(
                 args, result, expected,
                 sum_of_squared_distances(result),
                 sum_of_squared_distances(expected))
