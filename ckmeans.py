@@ -137,6 +137,7 @@ if __name__ == "__main__":
 
     from hypothesis import given
     from hypothesis.strategies import lists, integers, just, tuples
+    from numpy.testing import assert_approx_equal
 
     # can we set max higher? let's start with this number and see...
     for n in range(2,10):
@@ -151,6 +152,7 @@ if __name__ == "__main__":
 
             error_message = "ckmeans({}, {}) = {} != {}; {} > {}".format(
                 data, n, result, brute_result, squared_distance, brute_distance)
-            assert squared_distance == brute_distance, error_message
+
+            assert_approx_equal(squared_distance, brute_distance, err_msg=error_message)
 
         test_ckmeans()
