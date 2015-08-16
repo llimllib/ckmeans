@@ -129,7 +129,10 @@ if __name__ == "__main__":
     for test in tests:
         args, expected = test
         result = ckmeans(*args)
-        errormsg = "ckmeans({}) = {} != {}".format(args, result, expected)
+        errormsg = "ckmeans({}) = {} != {}\n{} {}".format(
+                args, result, expected,
+                sum_of_squared_distances(result),
+                sum_of_squared_distances(expected))
         assert np.array_equal(result, expected), errormsg
 
     from hypothesis import given
