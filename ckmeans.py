@@ -12,8 +12,11 @@ def ckmeans(data, n_clusters):
     data.sort()
     n = len(data)
 
-    matrix = np.zeros((n_clusters, n))
-    backtrack_matrix = np.zeros((n_clusters, n), dtype=np.int)
+    # The table we're filling up with withinss values
+    D = np.zeros((n_clusters, n))
+
+    # XXX: not clear on what goes in B?
+    B = np.zeros((n_clusters, n), dtype=np.int)
 
     for cluster in range(n_clusters):
         first_cluster_mean = data[0]
@@ -21,7 +24,7 @@ def ckmeans(data, n_clusters):
         for data_idx in range(max(cluster, 1), n):
             if cluster == 0:
                 squared_difference = (data[data_idx] - first_cluster_mean) ** 2
-                matrix[cluster][data_idx] = matrix[cluster][data_idx - 1] + ((data_idx - 1) / data_idx) * squared_difference
+                D[cluster][data_idx] = D[cluster][data_idx - 1] + ((data_idx - 1) / data_idx) * squared_difference
 
                 new_sum = data_idx * first_cluster_mean + data[data_idx]
                 first_cluster_mean = new_sum / data_idx
@@ -35,24 +38,24 @@ def ckmeans(data, n_clusters):
                     mean_xj = (data[j] + ((data_idx - j) * mean_xj)) / (data_idx - j + 1)
 
                     if j == data_idx:
-                        matrix[cluster][data_idx] = sum_squared_distances
-                        backtrack_matrix[cluster][data_idx] = j
+                        D[cluster][data_idx] = sum_squared_distances
+                        B[cluster][data_idx] = j
                         if j > 0:
-                            matrix[cluster][data_idx] += matrix[cluster - 1][j - 1]
+                            D[cluster][data_idx] += D[cluster - 1][j - 1]
                     else:
                         if j == 0:
-                            if sum_squared_distances <= matrix[cluster][data_idx]:
-                                matrix[cluster][data_idx] = sum_squared_distances
-                                backtrack_matrix[cluster][data_idx] = j
-                        elif sum_squared_distances + matrix[cluster-1][j-1] < matrix[cluster][data_idx]:
-                            matrix[cluster][data_idx] = sum_squared_distances + matrix[cluster-1][j-1]
-                            backtrack_matrix[cluster][data_idx] = j
+                            if sum_squared_distances <= D[cluster][data_idx]:
+                                D[cluster][data_idx] = sum_squared_distances
+                                B[cluster][data_idx] = j
+                        elif sum_squared_distances + D[cluster-1][j-1] < D[cluster][data_idx]:
+                            D[cluster][data_idx] = sum_squared_distances + D[cluster-1][j-1]
+                            B[cluster][data_idx] = j
 
     clusters = []
-    cluster_right = len(backtrack_matrix[0]) - 1
+    cluster_right = len(B[0]) - 1
 
-    for cluster in range(len(backtrack_matrix)-1, -1, -1):
-        cluster_left = backtrack_matrix[cluster][cluster_right]
+    for cluster in range(len(B)-1, -1, -1):
+        cluster_left = B[cluster][cluster_right]
         clusters.insert(0, data[cluster_left:cluster_right+1])
 
         if cluster > 0:
