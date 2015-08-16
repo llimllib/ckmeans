@@ -73,17 +73,76 @@ if __name__ == "__main__":
         (([1], 1), [[1]]),
         (([1,1,1,1], 1), [[1,1,1,1]]),
         (([1,2,3], 3), [[1], [2], [3]]),
-        (([1,2,2,3], 3), [[1,2], [2], [3]]),
-        (([1,2,2,3,3], 3), [[1,2], [2], [3,3]]),
-        (([1,2,3,2,3], 3), [[1,2], [2], [3,3]]),
-        (([3,2,3,2,1], 3), [[1,2], [2], [3,3]]),
+        (([1,2,2,3], 3), [[1], [2, 2], [3]]),
+        (([1,2,2,3,3], 3), [[1], [2, 2], [3,3]]),
+        (([1,2,3,2,3], 3), [[1], [2, 2], [3,3]]),
+        (([3,2,3,2,1], 3), [[1], [2, 2], [3,3]]),
         (([3,2,3,5,2,1], 3), [[1,2,2], [3,3], [5]]),
         (([0,1,2,100,101,103], 2), [[0,1,2], [100,101,103]]),
         (([0,1,2,50,100,101,103], 3), [[0, 1, 2], [50], [100, 101, 103]]),
-        (([-1,2,-1,2,4,5,6,-1,2,-1], 3), [[-1, -1, -1, -1], [2, 2, 2], [4, 5, 6]]),
+        (([-1,2,-1,2,4,5,6,-1,2,-1], 3),
+            [[-1, -1, -1, -1], [2, 2, 2], [4, 5, 6]]),
     ]
 
     for test in tests:
         args, expected = test
         result = ckmeans(*args)
-        assert np.array_equal(result, expected), "ckmeans({}) = {} != {}".format(args, result, expected)
+        errormsg = "ckmeans({}) = {} != {}".format(args, result, expected)
+        assert np.array_equal(result, expected), errormsg
+
+    from hypothesis import given
+    from hypothesis.strategies import lists, integers, just, tuples
+    import random
+
+    # partition recipe modified from
+    # http://wordaligned.org/articles/partitioning-with-python
+    from itertools import chain, combinations
+
+    def sliceable(xs):
+        '''Return a sliceable version of the iterable xs.'''
+        try:
+            xs[:0]
+            return xs
+        except TypeError:
+            return tuple(xs)
+
+    def partition_n(iterable, n):
+        s = sliceable(iterable)
+        l = len(s)
+        b, mid, e = [0], list(range(1, l)), [l]
+        getslice = s.__getitem__
+        splits = (d for i in range(l) for d in combinations(mid, n-1))
+        return [[s[sl] for sl in map(slice, chain(b, d), chain(d, e))]
+                for d in splits]
+
+    def squared_distance(part):
+        mean = sum(part)/len(part)
+        return sum((x-mean)**2 for x in part)
+
+    # given a partition, return the sum of the squared distances of each part
+    def sum_of_squared_distances(partition):
+        return sum(squared_distance(part) for part in partition)
+
+    # brute force the correct answer by testing every partition.
+    def min_squared_distance(data, n):
+        return min(sum_of_squared_distances(partition)
+                    for partition in partition_n(data, n))
+
+    # can we set max higher? let's start with this number and see...
+    ckmeans_args = integers(min_value=1, max_value=10).flatmap(lambda n: tuples(
+        lists(integers(), min_size=n, max_size=20), just(n)))
+    @given(ckmeans_args)
+    def test_ckmeans(args):
+        data, n_clusters = args
+        data = sorted(data)
+
+        result = ckmeans(data, n_clusters)
+        squared_distance = sum_of_squared_distances(result)
+
+        brute_result = min_squared_distance(data, n_clusters)
+
+        error_message = "ckmeans({}, {}) = {}; {} != {}".format(
+            data, n_clusters, result, squared_distance, brute_result)
+        assert squared_distance == brute_result, error_message
+
+    test_ckmeans()
