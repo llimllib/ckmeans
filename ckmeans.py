@@ -24,10 +24,10 @@ def ckmeans(data, n_clusters):
         for data_idx in range(max(cluster, 1), n):
             if cluster == 0:
                 squared_difference = (data[data_idx] - first_cluster_mean) ** 2
-                D[cluster][data_idx] = D[cluster][data_idx - 1] + ((data_idx - 1) / data_idx) * squared_difference
+                D[cluster][data_idx] = D[cluster][data_idx - 1] + (data_idx / (data_idx + 1)) * squared_difference
 
                 new_sum = data_idx * first_cluster_mean + data[data_idx]
-                first_cluster_mean = new_sum / data_idx
+                first_cluster_mean = new_sum / (data_idx + 1)
             else:
                 sum_squared_distances = 0
                 mean_xj = 0
