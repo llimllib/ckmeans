@@ -10,3 +10,5 @@ grouping of any array of numbers into k clusters.
 
 This code follows directly from Tom MacWright's code in
 [simple-statistics](https://github.com/simple-statistics/simple-statistics/blob/master/src/ckmeans.js)
+
+Please use this code in any way you wish, with or without attribution. It's licensed WTFPL.
