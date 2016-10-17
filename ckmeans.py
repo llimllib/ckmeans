@@ -1,5 +1,4 @@
 import numpy as np
-from operator import itemgetter
 
 def ssq(j, i, sum_x, sum_x_sq):
     if (j > 0):
