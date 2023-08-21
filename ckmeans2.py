@@ -1,13 +1,32 @@
 # a direct port of https://github.com/cran/Ckmeans.1d.dp/blob/f7f2920/src/Ckmeans.1d.dp.cpp
-from typing import List, TypeVar
+from typing import List, Any
 
-Vector = List[float]
+# Whatever numeric data type you provide to ckmeans has to implement:
+# - addition
+# - subtraction
+# - exponentiation
+# - sorting
+#
+# Also you need to be able to get a zero value from the type, which
+# I don't know of any way to type in python; whatever type I used
+# I was stymied by having to return a literal zero, which python sees
+# (correctly) as an integer and maybe not whatever type (float, complex, etc)
+# you passed in
+#
+# Here are some generic types I tried:
+#
+# from numbers import Real
+# T = TypeVar("T", int, Real)
+# T = TypeVar("T", bound=int)
+# T = TypeVar("T", bound=Real)
+#
+# but none of them worked adequately. Returning "Any" because I can't phrase
+# zero as a generic type sucks
+Vector = List
+Matrix = List[List]
 
-T = TypeVar("T")
-Matrix = List[List[T]]
 
-
-def dissimilarity(j: int, i: int, sum_x: Vector, sum_x_sq: Vector) -> float:
+def dissimilarity(j: int, i: int, sum_x: List, sum_x_sq: List) -> Any:
     if j > 0:
         muji = (sum_x[i] - sum_x[j - 1]) / (i - j + 1)
         sji = sum_x_sq[i] - sum_x_sq[j - 1] - (i - j + 1) * muji**2
@@ -21,8 +40,8 @@ def fill_row_q(
     imin: int,
     imax: int,
     q: int,
-    S: Matrix[float],
-    J: Matrix[int],
+    S: Matrix,
+    J: List[List[int]],
     sum_x: Vector,
     sum_x_sq: Vector,
 ):
@@ -44,7 +63,7 @@ def fill_row_q(
 #    to its cluster mean when there are exactly x[i] is the last point in
 #    cluster q
 # J: K x N backtrack matrix
-def fill_dp_matrix(x: Vector, S: Matrix[float], J: Matrix[int]):
+def fill_dp_matrix(x: Vector, S: Matrix, J: List[List[int]]):
     K = len(S)
     N = len(S[0])
 
@@ -73,12 +92,36 @@ def fill_dp_matrix(x: Vector, S: Matrix[float], J: Matrix[int]):
         fill_row_q(imin, N - 1, q, S, J, sum_x, sum_x_sq)
 
 
-# TODO: loosen the "float" type to some sort of numeric type class. Going to
-# start with strict types to match the source though
+# use the dynamic programming matrix to generate the clusters.
+#
+# - In the text, they are also returning each cluster's median and variance;
+#   I've omitted that here and you can calculate it yourself if you'd like
+#   https://github.com/cran/Ckmeans.1d.dp/blob/f7f2920/src/dynamic_prog.cpp#L176-L184
+# - Given a large data array, we'll be allocating a lot here; it may make sense
+#   to investigate better-performing approaches
+def backtrack(x: Vector, J: List[List[int]]) -> Matrix:
+    K = len(J)
+    N = len(J[0])
+    cluster_right = N - 1
+    clusters = []
+
+    for q in range(K - 1, -1, -1):
+        cluster_left = J[q][cluster_right]
+        clusters.append(x[cluster_left : cluster_right + 1])
+
+        if q > 0:
+            cluster_right = cluster_left - 1
+
+    return clusters
+
+
 # TODO replicate their code for choosing an optimal number for k; we're just
 # skipping it here
 # https://github.com/cran/Ckmeans.1d.dp/blob/f7f2920/src/Ckmeans.1d.dp.cpp#L237-L242
-def kmeans_1d_dp(x: Vector, k: int) -> Matrix[float]:
+#
+# ckmeans will return a Matrix of whatever type x is of, but actually typing it
+# that way has eluded my ability
+def ckmeans(x: Vector, k: int) -> Matrix:
     x.sort()
 
     # https://github.com/cran/Ckmeans.1d.dp/blob/f7f2920/src/Ckmeans.1d.dp.cpp#L199
@@ -99,14 +142,8 @@ def kmeans_1d_dp(x: Vector, k: int) -> Matrix[float]:
 
         fill_dp_matrix(x, S, J)
 
-        # XXX: here's where I stopped for the day, translating
-        # https://github.com/cran/Ckmeans.1d.dp/blob/f7f2920/src/Ckmeans.1d.dp.cpp#L271-L277
-        #
-        # I'm not quite sure:
-        # - how to translate cluster_sorted, which passes an integer by
-        # reference into `backtrack` - whether to implement `backtrack_L1` or
-        # `backtrack`, or what the difference is - what `centers` and
-        # `withinss` ought to be (they're arguments to the function in this
-        # version, but what are they supposed to contain?)
-        #
-        # backtrack(x, J, cluster_sorted...
+        clusters = backtrack(x, J)
+
+        return list(reversed(clusters))
+    else:
+        return [x]
