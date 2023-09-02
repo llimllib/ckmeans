@@ -26,6 +26,10 @@ Vector = List
 Matrix = List[List]
 
 
+# XXX: when profiling, this is where all the time gets spent (16 / 26s on an
+# example run)
+# - ssq only got called 138,495 times, this function got called 50,049,903 -
+# 2.5 orders of magnitude seems like an issue lol
 def dissimilarity(j: int, i: int, sum_x: List, sum_x_sq: List) -> Any:
     if j > 0:
         muji = (sum_x[i] - sum_x[j - 1]) / (i - j + 1)
@@ -36,6 +40,7 @@ def dissimilarity(j: int, i: int, sum_x: List, sum_x_sq: List) -> Any:
     return 0 if sji < 0 else sji
 
 
+# https://github.com/cran/Ckmeans.1d.dp/blob/f7f2920/src/fill_quadratic.cpp#L32
 def fill_row_q(
     imin: int,
     imax: int,
@@ -45,6 +50,8 @@ def fill_row_q(
     sum_x: Vector,
     sum_x_sq: Vector,
 ):
+    # XXX: in ckmeans.py, we're just setting i = (imin+imax) //2 - here we're
+    # looping and that's very costly, what's the diff?
     for i in range(imin, imax + 1):
         S[q][i] = S[q - 1][i - 1]
         J[q][i] = i
@@ -55,6 +62,30 @@ def fill_row_q(
                 S[q][i] = sj
                 J[q][i] = j
 
+def fill_row_q_log_linear(
+    imin: int,
+    imax: int,
+    q: int,
+    S: Matrix,
+    J: List[List[int]],
+    sum_x: Vector,
+    sum_x_sq: Vector,
+):
+    K = len(S)
+    N = len(S[0])
+    i = (imin + imax) // 2
+
+    S[q][i] = S[q - 1][i - 1]
+    J[q][i] = i
+
+    # the lower end for j
+    # TODO: here's where I left off
+    jlow = q
+    if imin > q:
+        jlow = 
+
+    if (imin > q):
+        jlow = min(jlow, jn)
 
 # fill the dynamic programming matrix
 #
@@ -63,6 +94,8 @@ def fill_row_q(
 #    to its cluster mean when there are exactly x[i] is the last point in
 #    cluster q
 # J: K x N backtrack matrix
+#
+# https://github.com/cran/Ckmeans.1d.dp/blob/f7f2920/src/dynamic_prog.cpp#L34
 def fill_dp_matrix(x: Vector, S: Matrix, J: List[List[int]]):
     K = len(S)
     N = len(S[0])
