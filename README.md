@@ -16,4 +16,7 @@ Please use this code in any way you wish, with or without attribution. It's lice
 If you'd rather use the original C++ code via a cython wrapper, check out
 [rocketrip/ckmeans](https://github.com/rocketrip/ckmeans).
 
+_2024 update_: I recommend [ckmeans_py](https://github.com/urschrei/ckmeans_py) (available on 
+[pyPI](https://pypi.org/project/ckmeans/)) which wraps an efficient rust version of this algorithm
+
 In 2022 ckmeans picked up a [citation](https://arxiv.org/ftp/arxiv/papers/2202/2202.04883.pdf)!
